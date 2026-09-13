@@ -14,7 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          event_date: string
+          event_name: string
+          id: string
+          max_participants: number
+          venue: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_name: string
+          id?: string
+          max_participants: number
+          venue: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_name?: string
+          id?: string
+          max_participants?: number
+          venue?: string
+        }
+        Relationships: []
+      }
+      registrations: {
+        Row: {
+          department: string
+          email: string
+          event_id: string
+          id: string
+          registered_at: string
+          student_name: string
+        }
+        Insert: {
+          department: string
+          email: string
+          event_id: string
+          id?: string
+          registered_at?: string
+          student_name: string
+        }
+        Update: {
+          department?: string
+          email?: string
+          event_id?: string
+          id?: string
+          registered_at?: string
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
