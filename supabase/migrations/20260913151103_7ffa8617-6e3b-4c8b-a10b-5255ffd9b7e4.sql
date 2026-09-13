@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.check_event_capacity() FROM PUBLIC, anon, authenticated;
