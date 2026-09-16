@@ -50,6 +50,7 @@ function ManageEventsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations-total"] });
       toast.success("Event deleted successfully");
       setPendingDelete(null);
     },
