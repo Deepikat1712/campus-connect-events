@@ -29,29 +29,53 @@ export function friendlyError(error: unknown): string {
   if (message.includes("max_participants")) {
     return "Maximum participants must be greater than 0";
   }
+  if (
+    message.toLowerCase().includes("row-level security") ||
+    message.toLowerCase().includes("permission denied")
+  ) {
+    return "You are not allowed to do this. Please sign in as an organizer.";
+  }
   if (message.toLowerCase().includes("failed to fetch") || message.toLowerCase().includes("network")) {
     return "Could not reach the server. Please check your connection and try again.";
   }
+
   return message;
 }
 
 /* ------------------------------- Events -------------------------------- */
 
-export async function fetchEvents(): Promise<EventWithCount[]> {
-  const { data, error } = await supabase
-    .from("events")
-    .select("*, registrations(id)")
-    .order("event_date", { ascending: true });
-
+/**
+ * Seat counts come from a safe database helper that returns only totals,
+ * so visitors never see student names or emails.
+ */
+async function fetchRegistrationCounts(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.rpc("event_registration_counts");
   if (error) throw new Error(friendlyError(error));
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    counts.set(row.event_id as string, Number(row.registered_count ?? 0));
+  }
+  return counts;
+}
 
-  return (data ?? []).map((row) => {
-    const { registrations, ...event } = row as CollegeEvent & {
-      registrations: { id: string }[] | null;
-    };
-    const registered = registrations?.length ?? 0;
+export async function fetchTotalRegistrations(): Promise<number> {
+  const { data, error } = await supabase.rpc("total_registrations");
+  if (error) throw new Error(friendlyError(error));
+  return Number(data ?? 0);
+}
+
+export async function fetchEvents(): Promise<EventWithCount[]> {
+  const [eventsResult, counts] = await Promise.all([
+    supabase.from("events").select("*").order("event_date", { ascending: true }),
+    fetchRegistrationCounts(),
+  ]);
+
+  if (eventsResult.error) throw new Error(friendlyError(eventsResult.error));
+
+  return (eventsResult.data ?? []).map((event) => {
+    const registered = counts.get(event.id) ?? 0;
     return {
-      ...event,
+      ...(event as CollegeEvent),
       registered_count: registered,
       available_seats: Math.max(event.max_participants - registered, 0),
     };
@@ -59,25 +83,23 @@ export async function fetchEvents(): Promise<EventWithCount[]> {
 }
 
 export async function fetchEventById(id: string): Promise<EventWithCount> {
-  const { data, error } = await supabase
-    .from("events")
-    .select("*, registrations(id)")
-    .eq("id", id)
-    .maybeSingle();
+  const [eventResult, counts] = await Promise.all([
+    supabase.from("events").select("*").eq("id", id).maybeSingle(),
+    fetchRegistrationCounts(),
+  ]);
 
-  if (error) throw new Error(friendlyError(error));
-  if (!data) throw new Error("Event not found. It may have been deleted.");
+  if (eventResult.error) throw new Error(friendlyError(eventResult.error));
+  if (!eventResult.data) throw new Error("Event not found. It may have been deleted.");
 
-  const { registrations, ...event } = data as CollegeEvent & {
-    registrations: { id: string }[] | null;
-  };
-  const registered = registrations?.length ?? 0;
+  const event = eventResult.data as CollegeEvent;
+  const registered = counts.get(event.id) ?? 0;
   return {
     ...event,
     registered_count: registered,
     available_seats: Math.max(event.max_participants - registered, 0),
   };
 }
+
 
 export interface EventInput {
   event_name: string;
@@ -141,11 +163,20 @@ export interface RegistrationInput {
   event_id: string;
 }
 
-export async function createRegistration(input: RegistrationInput): Promise<Registration> {
-  const { data, error } = await supabase.from("registrations").insert(input).select().single();
+/**
+ * Creates a registration. Visitors may submit one without an account; when a
+ * student is signed in the row is linked to their account so they can see it
+ * later. The inserted row is not read back, because student details are not
+ * readable by the public.
+ */
+export async function createRegistration(input: RegistrationInput): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id ?? null;
+
+  const { error } = await supabase.from("registrations").insert({ ...input, user_id: userId });
   if (error) throw new Error(friendlyError(error));
-  return data as Registration;
 }
+
 
 export async function updateRegistration(
   id: string,

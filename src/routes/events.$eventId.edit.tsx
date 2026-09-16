@@ -49,6 +49,7 @@ function EditEventPage() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations-total"] });
       toast.success(`"${event.event_name}" was updated successfully`);
       navigate({ to: "/manage" });
     },

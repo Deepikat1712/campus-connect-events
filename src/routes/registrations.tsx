@@ -62,6 +62,7 @@ function RegistrationsPage() {
       updateRegistration(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations-total"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Registration updated successfully");
       setEditing(null);
@@ -73,6 +74,7 @@ function RegistrationsPage() {
     mutationFn: (id: string) => deleteRegistration(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations-total"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Registration cancelled");
       setPendingDelete(null);

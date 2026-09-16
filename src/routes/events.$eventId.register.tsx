@@ -37,6 +37,7 @@ function RegisterPage() {
     mutationFn: (values: RegistrationFormValues) => createRegistration(values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations-total"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       toast.success("Registration completed successfully");
