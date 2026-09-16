@@ -46,3 +46,5 @@ events and registrations with validation and live seat counts.
 | Backend  | Supabase (PostgreSQL, REST data API)   |
 | Icons    | lucide-react                           |
 
+LIVE DEMO : 
+student-venue-flow.lovable.app
