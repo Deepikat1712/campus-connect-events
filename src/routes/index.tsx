@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventCard } from "@/components/EventCard";
 import { ErrorState, LoadingState } from "@/components/StateViews";
-import { fetchEvents, fetchRegistrations, isUpcoming } from "@/lib/api";
+import { fetchEvents, fetchTotalRegistrations, isUpcoming } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,7 +35,11 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const eventsQuery = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const registrationsQuery = useQuery({ queryKey: ["registrations"], queryFn: fetchRegistrations });
+  const registrationsQuery = useQuery({
+    queryKey: ["registrations-total"],
+    queryFn: fetchTotalRegistrations,
+  });
+
 
   const events = eventsQuery.data ?? [];
   const totalEvents = events.length;
@@ -43,7 +47,7 @@ function HomePage() {
   const availableEvents = events.filter(
     (event) => isUpcoming(event.event_date) && event.available_seats > 0,
   ).length;
-  const totalRegistrations = registrationsQuery.data?.length ?? 0;
+  const totalRegistrations = registrationsQuery.data ?? 0;
 
   const stats = [
     { label: "Total Events", value: totalEvents, icon: CalendarDays },
