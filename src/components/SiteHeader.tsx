@@ -1,16 +1,40 @@
-import { Link } from "@tanstack/react-router";
-import { CalendarDays, GraduationCap, Home, Menu, Settings, Users } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  GraduationCap,
+  Home,
+  LogIn,
+  LogOut,
+  Menu,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
-
-const NAV_ITEMS = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/events", label: "Events", icon: CalendarDays },
-  { to: "/registrations", label: "Registrations", icon: Users },
-  { to: "/manage", label: "Manage Events", icon: Settings },
-] as const;
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const navItems = [
+    { to: "/", label: "Home", icon: Home },
+    { to: "/events", label: "Events", icon: CalendarDays },
+    { to: "/registrations", label: "Registrations", icon: Users },
+    ...(isAdmin ? [{ to: "/manage", label: "Manage Events", icon: Settings }] : []),
+  ] as const;
+
+  async function handleSignOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    setOpen(false);
+    navigate({ to: "/", replace: true });
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur">
@@ -28,7 +52,7 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
@@ -40,34 +64,73 @@ export function SiteHeader() {
               {label}
             </Link>
           ))}
+
+          {user ? (
+            <div className="ml-2 flex items-center gap-2 border-l border-border pl-3">
+              <span className="max-w-[10rem] truncate text-xs text-muted-foreground">
+                {user.email}
+                {isAdmin ? " · Admin" : ""}
+              </span>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="mr-1 h-3.5 w-3.5" />
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <Button asChild size="sm" className="ml-2">
+              <Link to="/auth">
+                <LogIn className="mr-1 h-3.5 w-3.5" />
+                Sign in
+              </Link>
+            </Button>
+          )}
         </nav>
 
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-label="Toggle navigation menu"
-          aria-expanded={open}
-          className="inline-flex items-center justify-center rounded-lg border border-border p-2 text-foreground transition-colors hover:bg-secondary md:hidden"
+          className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-secondary md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
       </div>
 
       {open && (
-        <nav className="border-t border-border bg-card px-4 pb-4 md:hidden">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        <nav className="border-t border-border bg-card px-4 pb-4 pt-2 md:hidden">
+          {navItems.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
-              onClick={() => setOpen(false)}
               activeOptions={{ exact: to === "/" }}
-              className="flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary"
               activeProps={{ className: "bg-secondary text-primary" }}
             >
               <Icon className="h-4 w-4" />
               {label}
             </Link>
           ))}
+
+          {user ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out ({user.email})
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              onClick={() => setOpen(false)}
+              className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-primary hover:bg-secondary"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in
+            </Link>
+          )}
         </nav>
       )}
     </header>
