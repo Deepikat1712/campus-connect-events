@@ -29,9 +29,16 @@ export function friendlyError(error: unknown): string {
   if (message.includes("max_participants")) {
     return "Maximum participants must be greater than 0";
   }
+  if (
+    message.toLowerCase().includes("row-level security") ||
+    message.toLowerCase().includes("permission denied")
+  ) {
+    return "You are not allowed to do this. Please sign in as an organizer.";
+  }
   if (message.toLowerCase().includes("failed to fetch") || message.toLowerCase().includes("network")) {
     return "Could not reach the server. Please check your connection and try again.";
   }
+
   return message;
 }
 
