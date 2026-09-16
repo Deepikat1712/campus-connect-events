@@ -163,11 +163,20 @@ export interface RegistrationInput {
   event_id: string;
 }
 
-export async function createRegistration(input: RegistrationInput): Promise<Registration> {
-  const { data, error } = await supabase.from("registrations").insert(input).select().single();
+/**
+ * Creates a registration. Visitors may submit one without an account; when a
+ * student is signed in the row is linked to their account so they can see it
+ * later. The inserted row is not read back, because student details are not
+ * readable by the public.
+ */
+export async function createRegistration(input: RegistrationInput): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id ?? null;
+
+  const { error } = await supabase.from("registrations").insert({ ...input, user_id: userId });
   if (error) throw new Error(friendlyError(error));
-  return data as Registration;
 }
+
 
 export async function updateRegistration(
   id: string,
