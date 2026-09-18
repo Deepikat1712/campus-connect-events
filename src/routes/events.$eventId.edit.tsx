@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventForm } from "@/components/EventForm";
 import { ErrorState, LoadingState } from "@/components/StateViews";
+import { AdminOnly } from "@/components/AdminOnly";
+import { useAuth } from "@/hooks/useAuth";
 import { fetchEventById, updateEvent } from "@/lib/api";
 import type { EventFormValues } from "@/lib/types";
 
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/events/$eventId/edit")({
 });
 
 function EditEventPage() {
+  const { isAdmin, loading: authLoading } = useAuth();
   const { eventId } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -55,6 +58,14 @@ function EditEventPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  if (!authLoading && !isAdmin) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <AdminOnly description="Only signed-in organizers can edit events." />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">

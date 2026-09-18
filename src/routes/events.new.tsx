@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventForm } from "@/components/EventForm";
+import { AdminOnly } from "@/components/AdminOnly";
+import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/lib/api";
 import type { EventFormValues } from "@/lib/types";
 
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/events/new")({
 });
 
 function AddEventPage() {
+  const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -45,6 +48,14 @@ function AddEventPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  if (!authLoading && !isAdmin) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <AdminOnly description="Only signed-in organizers can create new events." />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
