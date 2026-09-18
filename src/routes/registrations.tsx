@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { RegistrationForm } from "@/components/RegistrationForm";
+import { useAuth } from "@/hooks/useAuth";
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews";
 import {
   deleteRegistration,
@@ -49,13 +50,18 @@ export const Route = createFileRoute("/registrations")({
 });
 
 function RegistrationsPage() {
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<RegistrationWithEvent | null>(null);
   const [pendingDelete, setPendingDelete] = useState<RegistrationWithEvent | null>(null);
 
-  const registrationsQuery = useQuery({ queryKey: ["registrations"], queryFn: fetchRegistrations });
-  const eventsQuery = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const registrationsQuery = useQuery({
+    queryKey: ["registrations"],
+    queryFn: fetchRegistrations,
+    enabled: Boolean(user),
+  });
+  const eventsQuery = useQuery({ queryKey: ["events"], queryFn: fetchEvents, enabled: isAdmin });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, values }: { id: string; values: RegistrationFormValues }) =>
@@ -98,14 +104,42 @@ function RegistrationsPage() {
     );
   }, [registrationsQuery.data, search]);
 
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <LoadingState label="Checking your access…" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <EmptyState
+          title="Sign in to view registrations"
+          description="Student details are private. Sign in to see your own registrations, or sign in as an organizer to see all of them."
+          action={
+            <Button asChild>
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold">Student Registrations</h1>
+          <h1 className="font-display text-3xl font-bold">
+            {isAdmin ? "Student Registrations" : "My Registrations"}
+          </h1>
           <p className="mt-1 text-muted-foreground">
             {registrationsQuery.data
-              ? `${registrationsQuery.data.length} registration(s) stored in the database`
+              ? isAdmin
+                ? `${registrationsQuery.data.length} registration(s) stored in the database`
+                : `${registrationsQuery.data.length} registration(s) linked to your account`
               : "Loading registrations…"}
           </p>
         </div>
@@ -192,20 +226,26 @@ function RegistrationsPage() {
                         {formatDate(row.registered_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setEditing(row)}>
-                            <Pencil className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setPendingDelete(row)}
-                          >
-                            <Trash2 className="mr-1 h-3.5 w-3.5" />
-                            Cancel
-                          </Button>
-                        </div>
+                        {isAdmin ? (
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setEditing(row)}>
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setPendingDelete(row)}
+                            >
+                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-right text-xs text-muted-foreground">
+                            Contact an organizer to change this
+                          </p>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -234,26 +274,28 @@ function RegistrationsPage() {
                     <p className="text-xs text-muted-foreground">
                       Registered on {formatDate(row.registered_at)}
                     </p>
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setEditing(row)}
-                      >
-                        <Pencil className="mr-1 h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setPendingDelete(row)}
-                      >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Cancel
-                      </Button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setEditing(row)}
+                        >
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setPendingDelete(row)}
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
