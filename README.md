@@ -46,3 +46,35 @@ events and registrations with validation and live seat counts.
 | Backend  | Supabase (PostgreSQL, REST data API)   |
 | Icons    | lucide-react                           |
 
+
+## Security model (Row Level Security)
+
+Row Level Security is enabled on both tables and no policy uses an unrestricted
+`true` rule for reading or writing sensitive data.
+
+**Roles.** A `user_roles` table stores roles (`admin`, `student`) separately from
+user accounts, and a `has_role()` database function is used inside the policies.
+The first signed-in user can claim organizer (admin) access from the `/auth`
+page.
+
+**events**
+- Anyone (signed in or not) can view events, so the public Events page works.
+- Only admins can create, update or delete events.
+
+**registrations**
+- Nobody can read registrations without signing in — student names, emails and
+  departments are never exposed to anonymous visitors.
+- A signed-in student sees only their own registrations (matched by account id
+  or account email); an admin sees all of them.
+- Anyone can submit a registration from the website, so students do not need an
+  account to sign up for an event.
+- Only admins can update or cancel registrations.
+
+**Public counts without exposing data.** Seat availability and the "Total
+Registrations" statistic come from two safe database functions
+(`event_registration_counts()` and `total_registrations()`) that return numbers
+only, never student details.
+
+**Secrets.** Only the public project URL and publishable key are used in the
+frontend, through environment variables. No service keys or passwords exist in
+the source code.
