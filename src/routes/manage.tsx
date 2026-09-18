@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews";
+import { AdminOnly } from "@/components/AdminOnly";
+import { useAuth } from "@/hooks/useAuth";
 import { deleteEvent, fetchEvents, formatDate } from "@/lib/api";
 import type { EventWithCount } from "@/lib/types";
 
@@ -40,6 +42,7 @@ export const Route = createFileRoute("/manage")({
 });
 
 function ManageEventsPage() {
+  const { isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [pendingDelete, setPendingDelete] = useState<EventWithCount | null>(null);
 
@@ -59,6 +62,22 @@ function ManageEventsPage() {
       setPendingDelete(null);
     },
   });
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <LoadingState label="Checking your access…" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <AdminOnly description="Only signed-in organizers can create, edit or delete college events." />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">

@@ -41,7 +41,7 @@ function RegisterPage() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event", eventId] });
       toast.success("Registration completed successfully");
-      navigate({ to: "/registrations" });
+      navigate({ to: "/events" });
     },
     onError: (error: Error) => toast.error(error.message),
   });
